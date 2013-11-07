@@ -10,7 +10,7 @@ pure/ contains two "pure" implementations of BDDs in Coq, and one implementation
 
 smart/ contains the "smart" implementation of BDD in Coq, and one implementation of reduction of hash-consed lambda-terms. 
 
-bdd-reference/ contains the reference implementation of BDDs by Filli\^atre, that we use in our benchmarks
+bdd-reference/ contains the reference implementation of BDDs by Filliâtre, that we use in our benchmarks
 
 bench_bdd.{ml,v} corresponds to the frontend we used in our benchmarks. In order to generate the extracted code, please do "mkdir extracted; coqc bench_bdd.v". This will compile and extract the pure-deep, pure-shallow and smart implementations. 
 
