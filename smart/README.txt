@@ -1,0 +1,1 @@
+This directory contains the code for our \textsc{smart} implementation of BDDs, and the associated OCaml helpers. It also contains our implementation of reduction in the Lambda-calculus using the same desgn pattern. 

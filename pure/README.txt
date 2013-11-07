@@ -1,0 +1,1 @@
+This directory contains our \textsc{pure-deep} and \textsc{pure-shallow} implementations of BDDs. They can be used to implement reflexive tactics. The file shallow_lambda.v contains an implementation of reduction in the Lambda-calculus, which is descibred in the article submitted to JAR.  
