@@ -6,6 +6,7 @@ test:
 	ocamlbuild -tag debug -I extracted -lib unix test.native
 
 vo:
+	coqc monads.v
 	coqc smart_common.v
 	coqc reference_lambda.v
 	coqc smart_lambda.v
