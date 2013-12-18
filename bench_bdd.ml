@@ -46,7 +46,7 @@ module Pigeon = struct
   let (||) p1 p2 = match p1, p2 with
     | False, p 
     | p, False -> p
-    | _ -> And (p1, p2)
+    | _ -> Or (p1, p2)
 
   let ands i j f =
     let rec mk k = if k > j then True else (f k) && (mk (k+1)) in
