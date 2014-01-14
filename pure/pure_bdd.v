@@ -452,7 +452,7 @@ Proof.
 Qed.
 
 Definition upd u (b: state) :=
-  (tt, mk_state
+  ((next b), mk_state
     {|
       graph := PMap.add (next b) u (graph b);
       hmap := NMap.add u (next b) (hmap b);
@@ -564,9 +564,10 @@ Lemma wb_upd : forall (st:state) l v h,
                  wf_expr st v h ->
                  NMap.find (l, v, h) (hmap st) = None ->
                  l <> h ->
-                 wb st (upd (l, v, h)) (fun _ _ => True).
+                 wb st (upd (l, v, h)) (fun p st' =>
+                   PMap.find p (graph st') = Some (l, v, h)).
 Proof.
-  unfold upd. intros st l v h Hst Hl Hh HNone Hreduced st' [] Heq.
+  unfold upd. intros st l v h Hst Hl Hh HNone Hreduced st' n Heq.
   inject Heq.
   match goal with |- _ /\ ?P /\ _ => assert (Hincr:P) end.
   { constructor. simpl. zify; omega.
@@ -616,6 +617,7 @@ Proof.
   }
   sep; trivial. constructor; trivial.
   destruct st; simpl; eauto using incr_wf_memo.
+  simpl. apply PMap.gss.
 Qed.
 
 (** [mk_node l v h st] creates a node corresponding to the triple [l,v,h] if needed. *)
@@ -625,9 +627,7 @@ Definition mk_node (l : expr) (v: var) (h : expr) (st: state) :=
   else
     match NMap.find (l,v,h) (hmap st) with
         | Some x => (N x, st)
-        | None => let n := (l,v,h) in
-                  let u := next st in
-                  (N u, snd (upd n st))
+        | None => let (x, st) := upd (l,v,h) st in (N x, st)
      end.
 
 Definition mk_node_sem l v h st res st' :=
@@ -678,13 +678,7 @@ Proof.
       f_equal; eauto.
       sep; eauto.
       unfold mk_node_sem.
-      split.
-      * inject Hupd. econstructor. simpl. apply PMap.gss. auto.
-      * intros env vhl r Hr Hvhl.
-        unfold upd in Hupd.
-        injection Hupd. clear Hupd. intros Hupd _.
-        econstructor; eauto.
-        rewrite <- Hupd. apply PMap.gss.
+      split; econstructor; eauto.
 Qed.
 
 Hint Resolve wb_mk_node.
