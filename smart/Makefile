@@ -1,10 +1,3 @@
-
-
-test:
-	rm -rf _build/
-	ocamlbuild -I extracted -lib unix test.p.native
-	ocamlbuild -tag debug -I extracted -lib unix test.native
-
 vo:
 	coqc monads.v
 	coqc smart_common.v
@@ -13,6 +6,13 @@ vo:
 	coqc smart_bdd.v
 	coqc bdd_canonical.v
 	coqc extraction.v
+
+
+test:
+	rm -rf _build/
+	ocamlbuild -I extracted -lib unix test.p.native
+	ocamlbuild -tag debug -I extracted -lib unix test.native
+
 
 prof:
 	ocamlbuild -I extracted helpers.inferred.mli

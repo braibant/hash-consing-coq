@@ -73,15 +73,18 @@ Definition bdd_false := F.
 
 Definition bdd_true  := T.
 
-Definition bdd_not : bdd -> bdd.
-refine
+Program Definition bdd_not : bdd -> bdd :=
   (memo_rec (well_founded_ltof _ bdd_size) (fun b =>
      match b with
        | T => fun _ => F
        | F => fun _ => T
        | N v bt bf =>
          fun rec => N v (rec bt _) (rec bf _)
-     end));
+     end)).
+Next Obligation.
+unfold ltof; simpl; clear; abstract omega.
+Defined.
+Next Obligation.
 unfold ltof; simpl; clear; abstract omega.
 Defined.
 

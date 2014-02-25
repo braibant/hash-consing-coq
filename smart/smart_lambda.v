@@ -21,33 +21,33 @@ Extract Inductive term =>
 Parameter memo_term : memoizer term.
 Extract Inlined Constant memo_term => "Helpers_lambda.term_memo".
 
-Program Definition lifti : N -> term -> N -> term :=
+Definition lifti : N -> term -> N -> term.
+refine (
   memo (fun n =>
-    memo_rec (well_founded_ltof _ size) (fun t rec =>
+    memo_rec (well_founded_ltof _ size) (fun t rec k =>
       memo (fun k =>
         match t with
-          | Var i => if N.ltb i k then Var i else Var (N.add i n)
-          | Abs t => Abs (rec t _ (N.succ k) )
-          | App t u => App (rec t _ k) (rec u _ k)
-        end))).
-Next Obligation. unfold ltof; simpl; omega. Qed.
-Next Obligation. unfold ltof; simpl; omega. Qed.
-Next Obligation. unfold ltof; simpl; omega. Qed.
+          | Var i => fun rec => if N.ltb i k then Var i else Var (N.add i n)
+          | Abs t => fun rec => Abs (rec t _ (N.succ k) )
+          | App t u => fun rec => App (rec t _ k) (rec u _ k)
+        end) k rec)));
+unfold ltof; simpl; abstract omega.
+Defined.
 
 Definition lift n t := lifti n t 0%N.
 
-Program Definition substi : term -> term -> N -> term :=
+Definition substi : term -> term -> N -> term.
+refine(
   memo (fun w =>
-    memo_rec (well_founded_ltof _ size) (fun t rec =>
+    memo_rec (well_founded_ltof _ size) (fun t rec n =>
       memo (fun n =>
         match t with
-          | Var k => if N.eqb k n then lift n w else if N.ltb k n then Var k else Var (N.pred k)
-          | Abs t => Abs (rec t _ (N.succ n))
-          | App t u => App (rec t _ n) (rec u _ n)
-        end))).
-Next Obligation. unfold ltof; simpl; omega. Qed.
-Next Obligation. unfold ltof; simpl; omega. Qed.
-Next Obligation. unfold ltof; simpl; omega. Qed.
+          | Var k => fun rec => if N.eqb k n then lift n w else if N.ltb k n then Var k else Var (N.pred k)
+          | Abs t => fun rec => Abs (rec t _ (N.succ n))
+          | App t u => fun rec => App (rec t _ n) (rec u _ n)
+        end) n rec)));
+unfold ltof; simpl; abstract (omega).
+Defined.
 
 Definition subst u t := substi u t 0%N.
 
