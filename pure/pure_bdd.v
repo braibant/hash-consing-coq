@@ -1056,23 +1056,23 @@ Section t.
           (fun a b st => Memo2.find a b (mand st))
           update_and.
 
-      Theorem mk_and_sem_correct depth env (st: state)  a b va vb:
+      Theorem mk_and_correct depth v0 (st: state) a b :
         wf_st st ->
-        value env st a va ->
-        value env st b vb ->
+        wf_expr st v0 a -> wf_expr st v0 b ->
         forall res st', mk_and depth a b st = Some (res, st') ->
-                    value env st' res (va && vb).
+          wf_st st' /\ incr st st' /\
+          wf_expr st' v0 res /\
+          forall env va vb,
+            value env st a va ->
+            value env st b vb ->
+            value env st' res (va && vb).
       Proof.
         intros Hwf ; intros.
-        unfold mk_and in H1.
-        edestruct wf_expr_value with (e:=a); eauto.
-        edestruct wf_expr_value with (e:=b); eauto.
-        eapply (wbo_combinator _ _ _ _ Datatypes.andb) in H1.
-        - now (unfold combinator_sem, node_opb_rel  in H1; intuition eauto).
+        unfold mk_and in H1. eapply wbo_combinator; eauto.
         - apply Bool.andb_comm.
         - clear.
-          intros v res  st' hwf h.
-          eapply wb_ret; eauto.
+          intros v res st' hwf h.
+          eapply wb_ret. eauto.
           repeat constructor. unfold node_opb_rel. intros. inversion H0; subst.
           rewrite Bool.andb_false_r. constructor.
         - clear.
@@ -1087,12 +1087,6 @@ Section t.
           constructor; simpl; eauto.
           eapply (memo_add Datatypes.andb Bool.andb_comm mand); eauto.
         - clear.  intros. eapply (memo_find _ mand); eauto using wf_st_memo, wf_memo_mand.
-        - eauto.
-        - instantiate (1:=Pos.max x x0).
-          destruct H2; econstructor. eauto.
-          zify; omega.
-        - destruct H3; econstructor. eauto.
-          zify; omega.
       Qed.
 
     End mk_and.
@@ -1114,19 +1108,19 @@ Section t.
           (fun a b st => Memo2.find a b (mor st))
           update_or.
 
-      Theorem mk_or_sem_correct depth env (st: state)  a b va vb:
+      Theorem mk_or_correct depth v0 (st: state)  a b :
         wf_st st ->
-        value env st a va ->
-        value env st b vb ->
+        wf_expr st v0 a -> wf_expr st v0 b ->
         forall res st', mk_or depth a b st = Some (res, st') ->
-                    value env st' res (va || vb).
+          wf_st st' /\ incr st st' /\
+          wf_expr st' v0 res /\
+          forall env va vb,
+            value env st a va ->
+            value env st b vb ->
+            value env st' res (va || vb).
       Proof.
         intros Hwf ; intros.
-        unfold mk_or in H1.
-        edestruct wf_expr_value with (e:=a); eauto.
-        edestruct wf_expr_value with (e:=b); eauto.
-        eapply (wbo_combinator _ _ _ _ Datatypes.orb) in H1.
-        - now (unfold combinator_sem, node_opb_rel  in H1; intuition eauto).
+        unfold mk_or in H1. eapply wbo_combinator; eauto.
         - apply Bool.orb_comm.
         - clear.
           intros v res  st' hwf h.
@@ -1146,12 +1140,6 @@ Section t.
           constructor; simpl; eauto.
           eapply (memo_add Datatypes.orb Bool.orb_comm mor); eauto.
         - clear.  intros. eapply (memo_find _ mor); eauto using wf_st_memo, wf_memo_mor.
-        - eauto.
-        - instantiate (1:=Pos.max x x0).
-          destruct H2; econstructor. eauto.
-          zify; omega.
-        - destruct H3; econstructor. eauto.
-          zify; omega.
       Qed.
     End mk_or.
 
@@ -1323,15 +1311,14 @@ Section t.
 
       Hint Resolve negb_sem_eauto.
 
-      Lemma negb_wbo :
-        forall depth v a st,
+      Lemma wbo_mk_not depth v0 st a :
           wf_st st ->
-          wf_expr st v a ->
-          wbo st (mk_not depth a) (negb_sem v a st).
+          wf_expr st v0 a ->
+          wbo st (mk_not depth a) (negb_sem v0 a st).
       Proof.
-        induction depth.
+        revert v0 st a. induction depth.
         - intros; easy.
-        - simpl. intros v [| |na] st Hst Ha;
+        - simpl. intros v0 st [| |na] Hst Ha;
           try now
               (unfold negb_sem; simpl; repeat intro; inject H; simpl; intuition;
                match goal with
@@ -1343,7 +1330,7 @@ Section t.
             destruct (PMap.find na (mneg st)) eqn: Hmemo.
             - inject EQ. sep; eauto.
             - destruct (PMap.find na (graph st)) as [[[l1 v1] h1]|] eqn:Hna; simpl in EQ; try easy.
-              eapply wbo_bind with (Q := negb_sem v (N na) st) in EQ; eauto.
+              eapply wbo_bind with (Q := negb_sem v0 (N na) st) in EQ; eauto.
               intros. simpl in H.
               eapply wbo_bind; eauto.
               intros. simpl in *.
@@ -1361,16 +1348,17 @@ Section t.
           }
       Qed.
 
-      Lemma mk_not_sem_correct depth env (st: state)  a va:
-        wf_st st ->
-        value env st a va ->
-        forall res st', mk_not depth a st = Some (res, st') ->
-                    value env st' res (Datatypes.negb va).
-      Proof.
-        intros.
-        edestruct wf_expr_value; eauto.
-        eapply negb_wbo in H1; unfold negb_sem in *; intuition eauto.
-      Qed.
+      Lemma mk_not_correct depth v0 st a :
+          wf_st st ->
+          wf_expr st v0 a ->
+          forall res st', mk_not depth a st = Some (res, st') ->
+            wf_st st' /\
+            incr st st' /\
+            wf_expr st' v0 res /\
+            forall env va,
+              value env st a va ->
+              value env st' res (negb va).
+      Proof. intros; edestruct wbo_mk_not; eauto. Qed.
     End mk_not.
 
     Section mk_xor.
@@ -1391,19 +1379,19 @@ Section t.
           update_xor
           depth.
 
-      Theorem mk_xor_sem_correct depth env (st: state)  a b va vb:
+      Theorem mk_xor_correct depth v0 (st: state)  a b :
         wf_st st ->
-        value env st a va ->
-        value env st b vb ->
+        wf_expr st v0 a -> wf_expr st v0 b ->
         forall res st', mk_xor depth a b st = Some (res, st') ->
-                    value env st' res (Datatypes.xorb va vb).
+          wf_st st' /\ incr st st' /\
+          wf_expr st' v0 res /\
+          forall env va vb,
+            value env st a va ->
+            value env st b vb ->
+            value env st' res (xorb va vb).
       Proof.
         intros Hwf ; intros.
-        unfold mk_xor in H1.
-        edestruct wf_expr_value with (e:=a); eauto.
-        edestruct wf_expr_value with (e:=b); eauto.
-        eapply (wbo_combinator _ _ _ _ Datatypes.xorb) in H1.
-        - now (unfold combinator_sem, node_opb_rel  in H1; intuition eauto).
+        unfold mk_xor in H1. eapply wbo_combinator; eauto.
         - apply Bool.xorb_comm.
         - clear.
           intros v res  st' hwf h.
@@ -1413,14 +1401,11 @@ Section t.
           rewrite Bool.xorb_false_r. eauto.
         - clear.
           intros v res  st' hwf h.
-          eapply wbo_bind.
-          eapply negb_wbo; eauto.
-          intros.
-          eapply negb_wbo in H2; eauto 7.
-          eapply wb_ret; eauto.
-          unfold negb_sem in *.
-          repeat constructor; eauto. intuition eauto.   unfold node_opb_rel. intros. inversion H4; subst.
-          rewrite Bool.xorb_true_r. intuition eauto.
+          eapply wbo_bind. eapply wbo_mk_not; eauto.
+          intros. eapply wb_ret; eauto.
+          destruct H.
+          repeat constructor; eauto. unfold node_opb_rel. intros. inversion H5; subst.
+          rewrite Bool.xorb_true_r. eauto.
         - clear. intros.
           repeat intro. inject H4. simpl. intuition.
           destruct H1 as [? []].
@@ -1428,12 +1413,6 @@ Section t.
           constructor; simpl; eauto.
           eapply (memo_add Datatypes.xorb Bool.xorb_comm mxor); eauto.
         - clear.  intros. eapply (memo_find _ mxor); eauto using wf_st_memo, wf_memo_mxor.
-        - eauto.
-        - instantiate (1:=Pos.max x x0).
-          destruct H2; econstructor. eauto.
-          zify; omega.
-        - destruct H3; econstructor. eauto.
-          zify; omega.
       Qed.
     End mk_xor.
   End operations.

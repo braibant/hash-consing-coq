@@ -126,14 +126,12 @@ module Smart = struct
       | And (x,y) -> let x = mk x in let y = mk y in  bdd_and x y
       | Or  (x,y) -> let x = mk x in let y = mk y in  bdd_or x y
       | Xor (x,y) -> let x = mk x in let y = mk y in  bdd_xor x y
-						  
-      | Iff (x,y) -> let x = mk x in let y = mk y in   bdd_not (bdd_xor x y )
+      | Iff (x,y) -> let x = mk x in let y = mk y in  bdd_not (bdd_xor x y )
       | True -> bdd_true
       | False -> bdd_false
     in 
     mk f
 
-      
   let is_sat b = b != bdd_false
   let is_tauto  b = b ==  bdd_true
 end
@@ -359,8 +357,6 @@ let log msg =
   | Some o -> let o = open_out_gen [Open_creat; Open_append] 0o777 o in 
 	      Printf.fprintf o "%s\n" msg;
 	      close_out o
-		
-	      
   
 let test msg f =
   match !mode with
