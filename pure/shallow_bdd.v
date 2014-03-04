@@ -676,16 +676,18 @@ Section t.
 
       Fixpoint combinator (a:hc_expr) :=
         fix combinator_rec (b:hc_expr) st :=
-        match memo_get (ident a) (ident b) st with
-          | Some p => (p,st)
-          | None =>
-            let '(res, st) :=
-              match unhc a, unhc b with
-                | F, _ => fx b st
-                | _, F => fx a st
-                | T, _ => tx b st
-                | _, T => tx a st
-                | N l1 v1 h1, N l2 v2 h2 =>
+        match unhc a, unhc b with
+          | F, _ => fx b st
+          | _, F => fx a st
+          | T, _ => tx b st
+          | _, T => tx a st
+          | N l1 v1 h1, N l2 v2 h2 =>
+            let ida := ident a in
+            let idb := ident b in
+            match memo_get ida idb st with
+              | Some p => (p,st)
+              | None =>
+                let '(res, st) :=
                   match Pos.compare v1 v2 with
                     | Eq =>
                       let '(x, st) := combinator l1 l2 st in
@@ -700,10 +702,10 @@ Section t.
                       let '(y, st) := combinator_rec h2 st in
                       mk_node x v2 y st
                   end
-              end
-            in
-            let '(_, st) := memo_update (ident a) (ident b) res st in
-            (res, st)
+                in
+                let '(_, st) := memo_update ida idb res st in
+                (res, st)
+            end
         end.
 
       Lemma combinator_sem_comm: forall st m a b,
@@ -726,22 +728,28 @@ Section t.
         induction v using positive_strong_ind.
         destruct a as [a ida], b as [b idb]; simpl combinator.
         intros st Hst Ha Hb.
+        inversion Ha; inversion Hb; subst; clear Ha Hb.
+        destruct H4 as [| |la va ha v Hlaha Hla Hha Hvva];
+        destruct H9 as [| |lb vb hb v Hlbhb Hlb Hhb Hvvb]; simpl;
+        try (eapply Htx; now eauto); try (eapply Hfx; now eauto);
+        try (apply combinator_sem_comm; eapply Htx; now eauto);
+        try (apply combinator_sem_comm; eapply Hfx; now eauto).
         destruct (memo_get ida idb st) eqn:EQmg.
-        - intros st' h' EQ. inject EQ. sep; eauto.
-        - inversion Ha; inversion Hb; subst; clear Ha Hb.
-          eapply wb_bind.
+        - change ida with (ident (HC (N la va ha) ida)) in EQmg.
+          change idb with (ident (HC (N lb vb hb) idb)) in EQmg.
+          apply wb_ret; auto.
+          eapply Hmemo_get in EQmg; eauto.
+        - eapply wb_bind.
           Focus 2.
             intros; eapply wb_bind.
-            change ida with (ident (HC a ida)). change idb with (ident (HC b idb)). 
+            change ida with (ident (HC (N la va ha) ida)).
+            change idb with (ident (HC (N lb vb hb) idb)).
             eapply Hmemo_update; eauto. eapply H0.
             intros. apply wb_ret. auto.
             destruct H0. split; auto.
-            eauto 7 using wf_expr_rcni.
-          destruct H4 as [| |la va ha v Hlaha Hla Hha Hvva];
-          destruct H9 as [| |lb vb hb v Hlbhb Hlb Hhb Hvvb]; simpl;
-          try (eapply Htx; now eauto); try (eapply Hfx; now eauto);
-          try (apply combinator_sem_comm; eapply Htx; now eauto);
-          try (apply combinator_sem_comm; eapply Hfx; now eauto).
+            intros. simpl in H0.
+            eapply wf_hc_expr_incr; eauto.
+            eapply H0; eauto 4 using wf_expr_rcni.
           destruct (Pos.compare_spec va vb).
           + subst. eapply wb_bind; [|intros x ? Hx ? ? ?; eapply wb_bind]; eauto.
             intros y ? Hy ? ? ?. destruct Hx as [Hxwf Hx], Hy as [Hywf Hy].
